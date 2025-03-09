@@ -1,0 +1,101 @@
+system: 1.0.0
+info:
+  name: ai chat tool
+  description: AI聊天助手应用
+  vars:
+    DEEPSEEK_API_KEY:
+      description: >-
+        DeepSeek API密钥,
+        用于访问DeepSeek的AI模型服务
+    STORE_SVC_API_KEY:
+      description: "存储服务的API密钥，用于数据持久化"
+
+envs:
+  dev:
+    branch: dev
+  prod:
+    branch: main
+
+routes:
+  main_env: prod
+  main_app: chatui
+
+auths:
+  apikey:
+    type: api_key
+    envs:
+      dev:
+        in: header
+        name: API-KEY
+        value: ${{vars.STORE_SVC_API_KEY}}
+      prod:
+        in: header
+        name: API-KEY
+        value: ${{vars.STORE_SVC_API_KEY}}
+
+apps:
+  chatui:
+    type: web_frontend
+    envs:
+      dev:
+        build:
+          root_path: apps/chat-ui
+          script: npm install; npm run build
+        provision:
+          root_path: apps/chat-ui/dist
+          type: nodejs18x
+      prod:
+        build:
+          root_path: apps/chat-ui
+          script: npm install; npm run build
+        provision:
+          root_path: apps/chat-ui/dist
+          type: nodejs18x
+
+  chatapi:
+    type: web_api
+    envs:
+      dev:
+        build:
+          root_path: apps/chat-api
+          script: npm install
+        provision:
+          type: nodejs18x
+          root_path: apps/chat-api
+          start_command: node server.js
+          timeout: 120
+          vars:
+            - DEEPSEEK_API_KEY
+            - STORE_SVC_API_KEY
+      prod:
+        build:
+          root_path: apps/chat-api
+          script: npm install
+        provision:
+          type: nodejs18x
+          root_path: apps/chat-api
+          start_command: node server.js
+          timeout: 120
+          vars:
+            - DEEPSEEK_API_KEY
+            - STORE_SVC_API_KEY
+
+services:
+  store:
+    type: kv_store
+    envs:
+      dev:
+        auths:
+          - apikey
+        provision:
+          type: kv_store_v1
+          namespaces:
+            - dailycounter
+      prod:
+        auths:
+          - apikey
+        provision:
+          type: kv_store_v1
+          namespaces:
+            - dailycounter
+            - counter2 
